@@ -1,0 +1,31 @@
+# Rafael Murillo III
+# 12/11/2023
+# This script reads Active Directory to list all logons under NEP only and outputs the information to a text file on the desktop.
+
+Import-Module ActiveDirectory
+
+# Path to save the output file on oRaf's Desktop
+$outputFilePath = "C:\Users\oRaf\Desktop\NEP_Logons.txt"
+
+# Get all user accounts in the NEP OU
+$users = Get-ADUser -Filter * -SearchBase "OU=NEP,DC=mait,DC=minnesota,DC=edu" -Properties *
+
+# Create an empty array to store user info
+$userInfoArray = @()
+
+foreach ($user in $users) {
+    $userInfo = New-Object PSObject -Property @{
+        UPNName = $user.UserPrincipalName
+        DistinguishedName = $user.DistinguishedName
+        Location = "$($user.City), $($user.State), $($user.PostalCode)"
+        ExpirationDate = $user.AccountExpirationDate
+        GroupMembership = (Get-ADPrincipalGroupMembership $user.SamAccountName | Select -ExpandProperty Name) -join ", "
+    }
+    $userInfoArray += $userInfo
+}
+
+# Output to a text file
+$userInfoArray | Format-Table -AutoSize | Out-File $outputFilePath
+
+# Display the output file path
+Write-Host "Logon information written to: $outputFilePath"
